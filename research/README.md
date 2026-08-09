@@ -20,8 +20,8 @@ python research/boom_1_concentration.py      # etc.
 |---|----------|--------|---------|
 | 1 | Did concentrating in the megacap leaders beat the index? | EW Mag7 +1.15 Sharpe / +33.6% CAGR vs SPY +0.88 / +15% — but ex-post winner selection | ⚠️ hindsight, not alpha |
 | 2 | How many independent bets are 7 megacaps? | ~2.8 of 7; one factor = 57% of variance; 0.49 avg pairwise corr | ✅ risk finding (drives sizing) |
-| 3 | Does a momentum RULE tilting to leaders beat holding the set? | beta-neutral **+0.55 net** (monthly), stable across halves | ✅ the keeper (but fragile) |
-| 4 | Post-earnings drift in megacaps? | up- and down-gaps both drift up; up−down spread negative | ❌ no PEAD (beta + mild bounce) |
+| 3 | Does a momentum RULE tilting to leaders beat holding the set? | beta-neutral **+0.55 net** (monthly), stable across halves; **governed prototype** below | ✅ the keeper (but fragile) |
+| 4 | Post-earnings drift in megacaps? | fair re-test (real earnings, excess of SPY): reaction-based drift **+216 bp @20d, t=2.41** | ✅ real (reaction-based) |
 
 ## The synthesis
 
@@ -39,17 +39,39 @@ all at once.**
   NVDA and it falls to +0.39; drop NVDA+TSLA and it is +0.21. That is exactly #2's finding —
   seven megacaps are really ~2.8 independent bets on one factor — showing up in the returns.
   The "diversified tilt" is largely a bet on whichever one or two names are exploding.
-- **#4 is rejected.** No post-earnings drift survives; the apparent "drift" is secular beta,
-  and the up-minus-down spread is negative (a mild post-drop bounce, the opposite of PEAD).
+- **#4 flipped on a fair re-test.** The first pass (gap proxy, raw returns) was a *false
+  negative*: it caught any big gap, not real earnings, and didn't strip beta. Re-run on
+  **real earnings dates + EPS surprise, measured excess of SPY**, PEAD is real — misses drift
+  down hard (−189 bp @20d), and drift in the direction of the **announcement-day reaction**
+  is the tradeable signal (long-up/short-down: +107 bp/event @20d, **t = 2.41**). The naïve
+  beat/miss long-short is weak (t≈1.2) only because megacaps beat ~83% of the time. Modest
+  and event-scale — a candidate overlay, not a core sleeve.
 
-**Where this goes:** a Boom sleeve = the #3 momentum tilt, sized *under* the #2 crowding
-limits (cap single-name and single-factor exposure, budget for a ~-20% drawdown, and don't
-mistake the name count for diversification). It is a candidate for a paper A/B once built —
-not real capital, and not until the concentration risk is explicitly bounded.
+## The governed prototype (#3)
+
+`boom_prototype.py` builds the #3 tilt as the risk-bounded sleeve a governed live driver would
+run: per-name cap (15%), vol-target (12%) on the book's own realized P&L, cost model.
+
+| version | Sharpe | CAGR | maxDD | avg max-name wt |
+|---|---|---|---|---|
+| governed long sleeve | **+1.16** | +14.6% | **−14%** | 8% |
+| governed market-hedged (alpha cut) | +0.84* | +7.2% | −11% | — |
+| uncapped / unmanaged | +1.11 | +33.2% | −36% | 17% |
+| wider book (top third) | +1.18 | +14.8% | −15% | 6% |
+
+The governance controls cut drawdown from −36% to −14% at a similar Sharpe, and hold single-name
+weight to ~8%. *The market-hedged +0.84 is vs SPY and still contains the megacap *factor*
+premium; hedged against the EW-megacap basket (boom_3's stricter test) the pure within-megacap
+alpha is ~+0.55. Concentration risk is bounded, not eliminated.
+
+**Where this goes:** the Boom sleeve = the governed #3 tilt (paper-A/B candidate once a live
+driver enforces the caps), optionally with the #4 reaction-based PEAD as an earnings-window
+overlay. Not real capital, and nothing here is validated to the spine's bar.
 
 ## Files
 - `_boom_common.py` — shared data/metrics helpers + the universes.
 - `boom_1_concentration.py` — concentration vs index (hindsight caveat).
 - `boom_2_crowding.py` — one-factor / crowding risk (effective # bets).
 - `boom_3_leader_momentum.py` — the keeper: beta-neutral momentum tilt + robustness.
-- `boom_4_pead.py` — post-earnings drift (rejected).
+- `boom_prototype.py` — the #3 tilt as a governed, concentration-bounded prototype.
+- `boom_4_pead.py` — post-earnings drift, fair test (real earnings; requires `yfinance`+`lxml`).

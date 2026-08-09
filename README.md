@@ -36,18 +36,21 @@ Full detail, numbers, and both the wins and the rejections are in
 |---|----------|---------|
 | 1 | Did concentrating in the leaders beat the index? | ⚠️ won huge (+33.6% CAGR) but it's **hindsight**, not repeatable alpha |
 | 2 | How many bets are 7 megacaps really? | ✅ **~2.8 of 7**, one factor = 57% of variance — a risk finding |
-| 3 | Does a momentum RULE tilting to leaders beat holding the set? | ✅ **the keeper** — beta-neutral +0.55 net, but edge concentrated in a few names |
-| 4 | Post-earnings drift in megacaps? | ❌ no PEAD (secular beta + mild post-drop bounce) |
+| 3 | Does a momentum RULE tilting to leaders beat holding the set? | ✅ **the keeper** — beta-neutral +0.55 net; built into a governed prototype (+1.16 Sharpe, −14% DD) |
+| 4 | Post-earnings drift in megacaps? | ✅ **real** on a fair re-test (reaction-based, +216 bp @20d, t=2.41); proxy was a false negative |
 
 **The synthesis:** megacap outperformance is real, prospectively capturable via a 12-1
 momentum rule (#3), and dangerously concentrated — dropping NVDA nearly halves the edge,
-which is #2's one-factor reality showing up in the returns. A Boom sleeve is the #3
-momentum tilt sized *under* the #2 crowding limits. Not yet a live driver; a paper-A/B
-candidate once the concentration risk is explicitly bounded.
+which is #2's one-factor reality showing up in the returns. The #3 tilt is now a **governed
+prototype** (`research/boom_prototype.py`): per-name cap + vol-target take the raw
++33% CAGR / −36% DD book to **+14.6% CAGR / −14% DD at Sharpe +1.16**, with single-name
+weight held to ~8%. And a fair re-test resurrected **#4**: real post-earnings drift exists
+(reaction-based, t=2.41) as a candidate earnings-window overlay.
 
 ## Status
-**Research: first pass complete** (`research/`). No live driver yet; nothing validated to
-the spine's bar.
+**Research: keeper prototyped, #4 confirmed** (`research/`). Next graduation step is a
+governed live driver enforcing the same caps. No live driver yet; nothing validated to the
+spine's bar.
 
 ## The Blaque Baux family
 - **Blaque Baux** — base engine + validated slow risk-premium spine.
