@@ -27,18 +27,27 @@ lead-lag even *reverses* — so the edge here is unlikely to be timing one name 
 it is more plausibly a disciplined quality/momentum tilt with honest concentration control.
 Boom's job is to capture megacap leadership without pretending the crowding risk isn't real.
 
-## Research plan (Path A — not yet built)
+## Research — first pass done
 
-- **Quality/momentum tilt on megacaps** — extend the base's long-high-Sharpe finding to a
-  concentrated blue-chip book; test beta-neutral to isolate real selection from market beta.
-- **Concentration vs the index** — when does over/under-weighting the leaders beat just
-  holding the cap-weighted index (which is already mostly these names)?
-- **Post-earnings drift** — the one megacap event with a plausible, testable signal.
-- **Crowding / one-factor risk** — size with the correlation-study reality that these names
-  are largely one factor; diversification here is an illusion to guard against.
+Full detail, numbers, and both the wins and the rejections are in
+[`research/README.md`](research/README.md). The scorecard:
+
+| # | Question | Verdict |
+|---|----------|---------|
+| 1 | Did concentrating in the leaders beat the index? | ⚠️ won huge (+33.6% CAGR) but it's **hindsight**, not repeatable alpha |
+| 2 | How many bets are 7 megacaps really? | ✅ **~2.8 of 7**, one factor = 57% of variance — a risk finding |
+| 3 | Does a momentum RULE tilting to leaders beat holding the set? | ✅ **the keeper** — beta-neutral +0.55 net, but edge concentrated in a few names |
+| 4 | Post-earnings drift in megacaps? | ❌ no PEAD (secular beta + mild post-drop bounce) |
+
+**The synthesis:** megacap outperformance is real, prospectively capturable via a 12-1
+momentum rule (#3), and dangerously concentrated — dropping NVDA nearly halves the edge,
+which is #2's one-factor reality showing up in the returns. A Boom sleeve is the #3
+momentum tilt sized *under* the #2 crowding limits. Not yet a live driver; a paper-A/B
+candidate once the concentration risk is explicitly bounded.
 
 ## Status
-**Scaffold.** Engine wired as a submodule; strategy research not yet conducted.
+**Research: first pass complete** (`research/`). No live driver yet; nothing validated to
+the spine's bar.
 
 ## The Blaque Baux family
 - **Blaque Baux** — base engine + validated slow risk-premium spine.
