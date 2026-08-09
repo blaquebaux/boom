@@ -71,13 +71,7 @@ explicit `BB_LIVE_CONFIRM` sentinel.
 keys are added; nothing validated to the spine's bar, no real capital.
 
 ## The Blaque Baux family
-- **Blaque Baux** — base engine + validated slow risk-premium spine.
-- **Blunt** — short-horizon tactical sleeves.
-- **Brash** — highly aggressive (crypto, alternatives).
-- **Bleed** — deeply contrarian; positioned for the tails.
-- **Bottom** — sub-small-cap / penny names.
-- **Brittle** — near-expiry, far-OTM options/ETFs; the other side of the lottery ticket.
-- **Boom** *(this repo)* — mega-cap blue chips (the Magnificent 7 and peers).
+Base: **Blaque Baux** (engine + spine). Sleeves: **Blunt** (short-horizon tactical) · **Boom** *(this repo)* · **Brash** (crypto/alternatives) · **Bleed** (tail-catcher) · **Bottom** (penny/micro-cap) · **Brittle** (near-expiry OTM options) · **Broad** (broad/thematic ETFs) · **Bore** (market-neutral) · **Bulk** (defense) · **Brown** (conservative sectors) · **Blue** (entertainment/green-energy/tech).
 
 ## Layout
 ```
