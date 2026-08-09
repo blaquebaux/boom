@@ -47,10 +47,28 @@ prototype** (`research/boom_prototype.py`): per-name cap + vol-target take the r
 weight held to ~8%. And a fair re-test resurrected **#4**: real post-earnings drift exists
 (reaction-based, t=2.41) as a candidate earnings-window overlay.
 
+## Live driver
+
+`live/boom_live.jl` is the governed graduation of the #3 tilt — it runs on the engine's
+ExecutionController + Layer-3 safety gate (idempotency, reconciliation, kill switch, fill
+lineage), trades the top-quintile 12-1 momentum book equal-weighted with the per-name
+guardrail and vol-target from the prototype, and rebalances the delta daily. Crude single-
+name concentration is bounded by vol-targeting and equal-weighting, not eliminated.
+
+```bash
+julia --project=engine -e 'using Pkg; Pkg.instantiate()'       # one-time engine setup
+BB_DRYRUN=1 julia --project=engine live/boom_live.jl           # prints the book, trades nothing
+```
+
+Activate as a paper A/B leg: create an Alpaca paper account, save its keys to
+`~/.config/blaquebaux/alpaca_boom.env` (chmod 600), then the installed launchd agent
+(`live/com.blaquebaux.boom.plist`) picks it up. PAPER by default; real money needs the
+explicit `BB_LIVE_CONFIRM` sentinel.
+
 ## Status
-**Research: keeper prototyped, #4 confirmed** (`research/`). Next graduation step is a
-governed live driver enforcing the same caps. No live driver yet; nothing validated to the
-spine's bar.
+**Research complete; keeper prototyped and graduated to a governed live driver**
+(`live/boom_live.jl`), plus the #4 PEAD overlay confirmed. Paper-A/B ready once account
+keys are added; nothing validated to the spine's bar, no real capital.
 
 ## The Blaque Baux family
 - **Blaque Baux** — base engine + validated slow risk-premium spine.
@@ -64,8 +82,8 @@ spine's bar.
 ## Layout
 ```
 engine/     the Blaque Baux platform (git submodule → Carter-Warrens/blaquebaux)
-research/   Path-A strategy sketches (to come)
-live/       governed live drivers (once a sleeve graduates to paper A/B)
+research/   Path-A strategy sketches + the #3 governed prototype + scorecard
+live/       boom_live.jl (governed driver) + daily wrapper + launchd plist
 ```
 
 ## License
