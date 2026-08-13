@@ -2,7 +2,7 @@
 
 **The names that carry the index. Mega-cap blue chips — the Magnificent 7 and their peers — where liquidity is deepest and leadership is most concentrated.**
 
-Boom is a member of the Blaque Baux family. The [core repo](https://github.com/Carter-Warrens/blaquebaux)
+Boom is a member of the Blaque Baux family. The [core repo](https://github.com/blaque-baux/base)
 is the **engine and blueprint**. Boom points that engine at the top of the market: the
 highest-quality, highest-liquidity megacaps that have driven the bulk of index returns. It
 inherits the engine's governance wholesale. It is the deliberate opposite of **Bottom** —
@@ -13,7 +13,7 @@ same platform, opposite end of the cap ladder.
 > See [LICENSE](LICENSE).
 
 ```bash
-git clone --recursive https://github.com/Carter-Warrens/blaquebaux-boom.git
+git clone --recursive https://github.com/blaque-baux/boom.git
 julia --project=engine -e 'using Pkg; Pkg.instantiate()'   # one-time engine setup
 ```
 
@@ -84,12 +84,12 @@ honest research, reproducible evidence, and execution you can trust — is why C
 
 ## The Blaque Baux family
 This repo is one sleeve of the **Blaque Baux** family — a single governed engine steered in
-many directions. The [core repo](https://github.com/Carter-Warrens/blaquebaux) is the
-base/blueprint and holds the [full family roster](https://github.com/Carter-Warrens/blaquebaux#the-blaque-baux-family).
+many directions. The [core repo](https://github.com/blaque-baux/base) is the
+base/blueprint and holds the [full family roster](https://github.com/blaque-baux/base#the-blaque-baux-family).
 
 ## Layout
 ```
-engine/     the Blaque Baux platform (git submodule → Carter-Warrens/blaquebaux)
+engine/     the Blaque Baux platform (git submodule → blaque-baux/base)
 research/   Path-A strategy sketches + the #3 governed prototype + scorecard
 live/       boom_live.jl (governed driver) + daily wrapper + launchd plist
 ```
