@@ -65,10 +65,38 @@ Activate as a paper A/B leg: create an Alpaca paper account, save its keys to
 (`live/com.blaquebaux.boom.plist`) picks it up. PAPER by default; real money needs the
 explicit `BB_LIVE_CONFIRM` sentinel.
 
+### Bonds-regime overlay — cross-sleeve sizing (validated, on by default)
+
+BOOM consumes the regime read published by [Bonds](https://github.com/blaquebaux/bonds)
+(`~/.config/blaquebaux/bonds_regime.txt`). When the stock-bond correlation is **positive** — the bond
+hedge is *dead*, so a long equity book has no diversification cushion and equity tails co-move worse —
+BOOM **de-risks its gross by ×0.75**; when the correlation is **negative** (hedge live) it carries full
+size. It degrades gracefully: a missing or stale (>7d) signal defaults to full gross, and the overlay
+only ever *reduces* risk. Toggle with `BB_BONDS_OVERLAY=0`; tune with `BB_REGIME_DERISK`.
+
+**Validated** ([`live/boom_regime_validation.jl`](live/boom_regime_validation.jl)) — causal
+walk-forward, net of cost, reusing the real book and the same 63d SPY–IEF regime the bonds driver
+publishes:
+
+| book | Sharpe | CAGR | vol | maxDD |
+|------|--------|------|-----|-------|
+| FULL (always full gross) | +1.33 | 18.3% | 13.3% | −12% |
+| **OVERLAY (regime de-risk)** | **+1.33** | 15.8% | 11.6% | **−9%** |
+
+Same Sharpe, **22% shallower drawdown**, 86% of the return retained (de-risked 58% of rebalances). The
+overlay is a **guardrail, not an alpha boost** — it cuts drawdown for the same risk-adjusted return,
+exactly when the bond cushion is absent. This is the family's first cross-sleeve wiring: bonds'
+research keeper (the regime read) demonstrably improving a downstream equity sleeve.
+
+```bash
+julia --project=engine live/boom_regime_validation.jl   # the overlay-earns-its-place test
+```
+
 ## Status
 **Research complete; keeper prototyped and graduated to a governed live driver**
-(`live/boom_live.jl`), plus the #4 PEAD overlay confirmed. Paper-A/B ready once account
-keys are added; nothing validated to the spine's bar, no real capital.
+(`live/boom_live.jl`), plus the #4 PEAD overlay confirmed and the **bonds-regime sizing overlay wired
+in and validated** (same Sharpe, −22% drawdown). Paper-A/B ready once account keys are added; nothing
+validated to the spine's bar, no real capital.
 
 ## About Blaque Baux
 
@@ -91,7 +119,7 @@ base/blueprint and holds the [full family roster](https://github.com/blaquebaux/
 ```
 engine/     the Blaque Baux platform (git submodule → blaquebaux/base)
 research/   Path-A strategy sketches + the #3 governed prototype + scorecard
-live/       boom_live.jl (governed driver) + daily wrapper + launchd plist
+live/       boom_live.jl (governed driver, bonds-regime sizing overlay) + boom_regime_validation.jl + wrapper + plist
 ```
 
 ## License

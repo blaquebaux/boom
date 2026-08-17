@@ -48,9 +48,40 @@ const PER_NAME_CAP = 0.15
 const VOL_TARGET = 0.12
 const VOL_WIN    = 60
 const LEV_CAP    = 2.0
+# --- bonds regime overlay (consumes blaquebaux/bonds' published regime read) -----------------
+# When the stock-bond correlation is POSITIVE the bond hedge is DEAD — a long equity book has no
+# diversification cushion and tail co-moves are worse — so we DE-RISK gross. When NEGATIVE the hedge
+# is live and we carry full size. Graceful: a missing/stale signal defaults to full gross (the overlay
+# only ever REDUCES risk, and only on a fresh signal). Toggle off with BB_BONDS_OVERLAY=0.
+const REGIME_DERISK   = 0.75    # gross multiplier when the bond hedge is dead (pos-corr regime)
+const REGIME_MAXSTALE = Day(7)
 
 _readf(p) = isfile(p) ? (v = tryparse(Float64, strip(read(p, String))); v === nothing ? NaN : v) : NaN
 _writef(p, x) = (mkpath(dirname(p)); write(p, string(x)))
+
+"Parse blaquebaux/bonds' published regime file (key=value lines). Returns (; ok, hedge_on, corr, asof)."
+function read_bonds_regime(path)
+    isfile(path) || return (; ok = false)
+    d = Dict{String,String}()
+    for ln in eachline(path)
+        s = strip(ln); (isempty(s) || startswith(s, "#")) && continue
+        kv = split(s, "=", limit = 2); length(kv) == 2 && (d[strip(kv[1])] = strip(kv[2]))
+    end
+    ho = get(d, "hedge_on", ""); asof = tryparse(Date, get(d, "asof", ""))
+    (ho in ("0", "1") && asof !== nothing) || return (; ok = false)
+    (; ok = true, hedge_on = ho == "1", corr = tryparse(Float64, get(d, "corr63", "")), asof = asof)
+end
+
+"Gross-exposure multiplier from the bonds regime read (graceful: missing/stale/off -> 1.0)."
+function regime_gross_scale(path; derisk = parse(Float64, get(ENV, "BB_REGIME_DERISK", string(REGIME_DERISK))))
+    get(ENV, "BB_BONDS_OVERLAY", "1") in ("0", "false", "no") && return (1.0, "bonds overlay OFF (full gross)")
+    r = read_bonds_regime(path)
+    r.ok || return (1.0, "no bonds regime signal -> full gross")
+    (Dates.today() - r.asof) > REGIME_MAXSTALE && return (1.0, "bonds regime STALE ($(r.asof)) -> full gross")
+    c = r.corr === nothing ? NaN : round(r.corr, digits = 2)
+    r.hedge_on ? (1.0,    "bond hedge LIVE (neg-corr $c) -> full gross") :
+                 (derisk, "bond hedge DEAD (pos-corr $c) -> de-risk x$derisk")
+end
 
 "Compute the governed target weight vector over the panel's symbols (0 for names not held)."
 function boom_weights(returns::AbstractMatrix)
@@ -74,7 +105,8 @@ function main(; capital = nothing, pool = "us", limits::SafetyLimits = SafetyLim
               db_path     = get(ENV, "BB_LEDGER_PATH", joinpath(REPO, "alpaca_ledger_boom.sqlite")),
               audit_path  = get(ENV, "BB_AUDIT_PATH",  joinpath(REPO, "alpaca_audit_boom.jsonl")),
               hwm_path    = get(ENV, "BB_HWM_PATH",    joinpath(homedir(), ".config", "blaquebaux", "equity_hwm_boom.txt")),
-              equity_path = get(ENV, "BB_EQUITY_PATH", joinpath(homedir(), ".config", "blaquebaux", "equity_last_boom.txt")))
+              equity_path = get(ENV, "BB_EQUITY_PATH", joinpath(homedir(), ".config", "blaquebaux", "equity_last_boom.txt")),
+              regime_path = get(ENV, "BB_REGIME_PATH", joinpath(homedir(), ".config", "blaquebaux", "bonds_regime.txt")))
 
     if get(ENV, "ALPACA_KEY_ID", "") == "" || get(ENV, "ALPACA_SECRET_KEY", "") == ""
         error("Set ALPACA_KEY_ID and ALPACA_SECRET_KEY.")
@@ -84,8 +116,10 @@ function main(; capital = nothing, pool = "us", limits::SafetyLimits = SafetyLim
     if dryrun
         panel = panel_at(AlpacaPanelProvider(UNIVERSE; lookback = 320))
         w, sel, mom = boom_weights(panel.returns)
+        rscale, rnote = regime_gross_scale(regime_path); w = w .* rscale
         cap = capital === nothing ? 100_000.0 : capital
-        println("DRYRUN boom (asof ", panel.asof, ", gross ", @sprintf("%.0f%%", 100sum(w)), "):")
+        println("DRYRUN boom (asof ", panel.asof, "): bonds regime -> ", rnote)
+        println("  gross ", @sprintf("%.0f%%", 100sum(w)), " (regime x", @sprintf("%.2f", rscale), "):")
         for j in sort(collect(sel), by = x -> -w[x])
             sh = round(Int, w[j] * cap / panel.prices[j])
             println("  ", rpad(panel.symbols[j], 6), @sprintf("wt %5.1f%%  mom %+6.1f%%  %5d sh @ \$%.2f",
@@ -116,11 +150,12 @@ function main(; capital = nothing, pool = "us", limits::SafetyLimits = SafetyLim
         fresh   = (Dates.today() - panel.asof) <= Day(5)
 
         w, sel, _ = boom_weights(panel.returns)
+        rscale, rnote = regime_gross_scale(regime_path); w = w .* rscale     # bonds-regime gross overlay
         # Targets over the WHOLE universe (0 for non-selected) so names that rotate OUT get sold.
         targets = Dict(panel.symbols[j] => round(w[j] * cap / panel.prices[j]) for j in eachindex(w))
         prices  = Dict(panel.symbols[j] => panel.prices[j] for j in eachindex(w))
-        reg     = "momtilt-$(length(sel))names"
-        @info "boom book" names=length(sel) gross=sum(w) held=[panel.symbols[j] for j in sel]
+        reg     = "momtilt-$(length(sel))names-regx$(round(rscale, digits=2))"
+        @info "boom book" names=length(sel) gross=sum(w) regime=rnote held=[panel.symbols[j] for j in sel]
 
         ok, reasons = preflight(; account_status = acct.status, trading_blocked = acct.trading_blocked,
             account_blocked = acct.account_blocked, equity = acct.equity, hwm = hwm,
