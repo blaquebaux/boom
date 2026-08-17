@@ -65,37 +65,38 @@ Activate as a paper A/B leg: create an Alpaca paper account, save its keys to
 (`live/com.blaquebaux.boom.plist`) picks it up. PAPER by default; real money needs the
 explicit `BB_LIVE_CONFIRM` sentinel.
 
-### Bonds-regime overlay — cross-sleeve sizing (validated, on by default)
+### Bonds-regime overlay — cross-sleeve sizing (wired, OFF by default)
 
-BOOM consumes the regime read published by [Bonds](https://github.com/blaquebaux/bonds)
-(`~/.config/blaquebaux/bonds_regime.txt`). When the stock-bond correlation is **positive** — the bond
-hedge is *dead*, so a long equity book has no diversification cushion and equity tails co-move worse —
-BOOM **de-risks its gross by ×0.75**; when the correlation is **negative** (hedge live) it carries full
-size. It degrades gracefully: a missing or stale (>7d) signal defaults to full gross, and the overlay
-only ever *reduces* risk. Toggle with `BB_BONDS_OVERLAY=0`; tune with `BB_REGIME_DERISK`.
+BOOM can consume the regime read published by [Bonds](https://github.com/blaquebaux/bonds)
+(`~/.config/blaquebaux/bonds_regime.txt`): de-risk gross ×0.75 when the stock-bond correlation is
+positive (bond hedge dead). It's wired in with a graceful fallback (missing/stale → full gross) and a
+`BB_BONDS_OVERLAY=1` toggle — but it ships **OFF by default**, because on the full cycle it does not
+earn its place.
 
 **Validated** ([`live/boom_regime_validation.jl`](live/boom_regime_validation.jl)) — causal
 walk-forward, net of cost, reusing the real book and the same 63d SPY–IEF regime the bonds driver
-publishes:
+publishes, on the **full 2016–2026 SIP history**:
 
 | book | Sharpe | CAGR | vol | maxDD |
 |------|--------|------|-----|-------|
-| FULL (always full gross) | +1.33 | 18.3% | 13.3% | −12% |
-| **OVERLAY (regime de-risk)** | **+1.33** | 15.8% | 11.6% | **−9%** |
+| FULL (always full gross) | +1.18 | 16.6% | 13.8% | −19% |
+| OVERLAY (regime de-risk) | +1.13 | 14.8% | 12.9% | −19% |
 
-Same Sharpe, **22% shallower drawdown**, 86% of the return retained (de-risked 58% of rebalances). The
-overlay is a **guardrail, not an alpha boost** — it cuts drawdown for the same risk-adjusted return,
-exactly when the bond cushion is absent. This is the family's first cross-sleeve wiring: bonds'
-research keeper (the regime read) demonstrably improving a downstream equity sleeve.
+**0% drawdown cut, −0.05 Sharpe** (de-risked 35% of rebalances) — the overlay does *not* help. An
+earlier run on the engine's default IEX feed (only ~2021+) showed a −22% drawdown cut, but that was an
+**artifact of the 2022-dominated window**: BOOM's worst full-cycle drawdown is the 2020 COVID crash — a
+*negative*-correlation episode where the overlay (correctly) does nothing — so trimming gross only in
+positive-correlation periods gave up return without touching the max drawdown. Honest verdict: OFF.
 
 ```bash
-julia --project=engine live/boom_regime_validation.jl   # the overlay-earns-its-place test
+julia --project=engine live/boom_regime_validation.jl   # the overlay-earns-its-place test (full SIP)
 ```
 
 ## Status
 **Research complete; keeper prototyped and graduated to a governed live driver**
-(`live/boom_live.jl`), plus the #4 PEAD overlay confirmed and the **bonds-regime sizing overlay wired
-in and validated** (same Sharpe, −22% drawdown). Paper-A/B ready once account keys are added; nothing
+(`live/boom_live.jl`), plus the #4 PEAD overlay confirmed. The bonds-regime sizing overlay is wired but
+**OFF by default** — full-cycle validation shows it doesn't earn its place on BOOM (0% DD cut). Paper-A/B
+ready once account keys are added; nothing
 validated to the spine's bar, no real capital.
 
 ## About Blaque Baux

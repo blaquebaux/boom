@@ -74,7 +74,7 @@ end
 
 "Gross-exposure multiplier from the bonds regime read (graceful: missing/stale/off -> 1.0)."
 function regime_gross_scale(path; derisk = parse(Float64, get(ENV, "BB_REGIME_DERISK", string(REGIME_DERISK))))
-    get(ENV, "BB_BONDS_OVERLAY", "1") in ("0", "false", "no") && return (1.0, "bonds overlay OFF (full gross)")
+    get(ENV, "BB_BONDS_OVERLAY", "0") in ("0", "false", "no") && return (1.0, "bonds overlay OFF by default (full-history validation: 0% DD cut, -0.05 Sharpe — the IEX-window benefit was a 2022 artifact)")
     r = read_bonds_regime(path)
     r.ok || return (1.0, "no bonds regime signal -> full gross")
     (Dates.today() - r.asof) > REGIME_MAXSTALE && return (1.0, "bonds regime STALE ($(r.asof)) -> full gross")
