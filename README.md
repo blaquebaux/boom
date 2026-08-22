@@ -92,12 +92,40 @@ positive-correlation periods gave up return without touching the max drawdown. H
 julia --project=engine live/boom_regime_validation.jl   # the overlay-earns-its-place test (full SIP)
 ```
 
+### Market-regime overlay — the conditional-keeper test (wired, OFF by default / opt-in)
+
+BOOM can *also* consume [benchmark](https://github.com/blaquebaux/benchmark)'s market-internals composite
+(`~/.config/blaquebaux/market_regime.txt`): de-risk gross ×0.5 when the regime is risk-off. This is the
+**conditional-keeper test** from the "aberrations" question — *does a gate de-risk BOOM into the black-swan
+crashes and clear the family bar with them left IN?* — evaluated with the family's new fat-tail toolkit
+([`live/boom_market_regime_validation.jl`](live/boom_market_regime_validation.jl), full 2016–2026 SIP):
+
+| book | Sharpe | CAGR | vol | maxDD | skew | JB |
+|------|--------|------|-----|-------|------|-----|
+| FULL (vol-targeted, always) | +1.22 | 17.2% | 13.8% | −19% | **−0.31** | non-normal |
+| OVERLAY (market_regime gate) | **+1.26** | 13.7% | 10.7% | **−11%** | **+0.23** | non-normal |
+
+A genuinely close call, and instructive. The gate **cuts maxDD 41%** (−19%→−11%), nudges Sharpe **up**
+(+1.22→+1.26), lifts **M²** (+5.5%→+6.3% excess over SPY), and — most tellingly — **flips return skew from
+−0.31 to +0.23**, removing the classic momentum-crash left tail (JB rejects normality for both, so that
+tail is real and matters). But it de-risks ~48% of the time and **gives back ~20% of return**, so it
+**FAILS the retain-≥80%-return leg** of the default-ON bar (80% kept, just under). Why: **BOOM already
+vol-targets (12%)**, so it self-de-risks — like [broad](https://github.com/blaquebaux/broad) and
+[bridgewater](https://github.com/blaquebaux/bridgewater), a managed book the blanket overlay can't earn a
+default place on (benchmark #4's law). **Verdict: not a default-ON conditional keeper — but a legitimate
+drawdown/left-tail *insurance* option**, wired **opt-in** (`BB_MARKET_OVERLAY=1`).
+
+```bash
+julia --project=engine live/boom_market_regime_validation.jl   # the conditional-keeper test (full SIP)
+```
+
 ## Status
 **Research complete; keeper prototyped and graduated to a governed live driver**
-(`live/boom_live.jl`), plus the #4 PEAD overlay confirmed. The bonds-regime sizing overlay is wired but
-**OFF by default** — full-cycle validation shows it doesn't earn its place on BOOM (0% DD cut). Paper-A/B
-ready once account keys are added; nothing
-validated to the spine's bar, no real capital.
+(`live/boom_live.jl`), plus the #4 PEAD overlay confirmed. **Two regime overlays wired, both OFF by
+default**: the bonds-regime sizing overlay (doesn't earn its place — 0% DD cut) and the market-regime
+overlay (the conditional-keeper test — cuts DD 41% and flips skew positive, but gives back ~20% return, so
+it fails the default-ON bar and ships as opt-in insurance). BOOM already vol-targets, so it self-de-risks.
+Paper-A/B ready once account keys are added; nothing validated to the spine's bar, no real capital.
 
 ## About Blaque Baux
 
@@ -120,7 +148,7 @@ base/blueprint and holds the [full family roster](https://github.com/blaquebaux/
 ```
 engine/     the Blaque Baux platform (git submodule → blaquebaux/base)
 research/   Path-A strategy sketches + the #3 governed prototype + scorecard
-live/       boom_live.jl (governed driver, bonds-regime sizing overlay) + boom_regime_validation.jl + wrapper + plist
+live/       boom_live.jl (governed driver, bonds + market regime overlays, both opt-in) + boom_regime_validation.jl + boom_market_regime_validation.jl + wrapper + plist
 ```
 
 ## License

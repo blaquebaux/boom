@@ -55,6 +55,14 @@ const LEV_CAP    = 2.0
 # only ever REDUCES risk, and only on a fresh signal). Toggle off with BB_BONDS_OVERLAY=0.
 const REGIME_DERISK   = 0.75    # gross multiplier when the bond hedge is dead (pos-corr regime)
 const REGIME_MAXSTALE = Day(7)
+# --- market-regime overlay (consumes blaquebaux/benchmark's market_regime.txt) — OPT-IN --------
+# The conditional-keeper test (live/boom_market_regime_validation.jl) on the full 2016-2026 SIP: gating
+# BOOM on the market-internals composite cuts maxDD 41% (-19%->-11%), nudges Sharpe up (+1.22->+1.26),
+# and FLIPS return skew from -0.31 to +0.23 (removes the momentum-crash left tail) — but it de-risks ~48%
+# of the time and gives back ~20% of return, so it FAILS the retain-80%-return leg of the default-ON bar.
+# BOOM already vol-targets (12%), so it self-de-risks and doesn't NEED the gate (cf. broad, bridgewater).
+# => market_regime ships OFF by default; opt in with BB_MARKET_OVERLAY=1 for the drawdown/left-tail insurance.
+const MARKET_DERISK = 0.5       # gross multiplier when market_regime is risk-off (benchmark's standard)
 
 _readf(p) = isfile(p) ? (v = tryparse(Float64, strip(read(p, String))); v === nothing ? NaN : v) : NaN
 _writef(p, x) = (mkpath(dirname(p)); write(p, string(x)))
@@ -83,6 +91,28 @@ function regime_gross_scale(path; derisk = parse(Float64, get(ENV, "BB_REGIME_DE
                  (derisk, "bond hedge DEAD (pos-corr $c) -> de-risk x$derisk")
 end
 
+"Parse benchmark's published market_regime file (key=value). Returns (; ok, risk_on, asof)."
+function read_market_regime(path)
+    isfile(path) || return (; ok = false)
+    d = Dict{String,String}()
+    for ln in eachline(path)
+        s = strip(ln); (isempty(s) || startswith(s, "#")) && continue
+        kv = split(s, "=", limit = 2); length(kv) == 2 && (d[strip(kv[1])] = strip(kv[2]))
+    end
+    ro = get(d, "risk_on", ""); asof = tryparse(Date, get(d, "asof", ""))
+    (ro in ("0", "1") && asof !== nothing) || return (; ok = false)
+    (; ok = true, risk_on = ro == "1", asof = asof)
+end
+
+"Gross multiplier from benchmark's market regime — OPT-IN (default OFF; graceful: missing/stale -> 1.0)."
+function market_gross_scale(path; derisk = parse(Float64, get(ENV, "BB_MARKET_DERISK", string(MARKET_DERISK))))
+    get(ENV, "BB_MARKET_OVERLAY", "0") in ("0", "false", "no") && return (1.0, "market overlay OFF by default (validation: cuts DD 41% & flips skew +, but gives back ~20% return -> opt-in)")
+    r = read_market_regime(path)
+    r.ok || return (1.0, "no market regime signal -> full gross")
+    (Dates.today() - r.asof) > REGIME_MAXSTALE && return (1.0, "market regime STALE ($(r.asof)) -> full gross")
+    r.risk_on ? (1.0, "market RISK-ON -> full gross") : (derisk, "market RISK-OFF -> de-risk x$derisk")
+end
+
 "Compute the governed target weight vector over the panel's symbols (0 for names not held)."
 function boom_weights(returns::AbstractMatrix)
     T, N = size(returns)
@@ -106,7 +136,8 @@ function main(; capital = nothing, pool = "us", limits::SafetyLimits = SafetyLim
               audit_path  = get(ENV, "BB_AUDIT_PATH",  joinpath(REPO, "alpaca_audit_boom.jsonl")),
               hwm_path    = get(ENV, "BB_HWM_PATH",    joinpath(homedir(), ".config", "blaquebaux", "equity_hwm_boom.txt")),
               equity_path = get(ENV, "BB_EQUITY_PATH", joinpath(homedir(), ".config", "blaquebaux", "equity_last_boom.txt")),
-              regime_path = get(ENV, "BB_REGIME_PATH", joinpath(homedir(), ".config", "blaquebaux", "bonds_regime.txt")))
+              regime_path = get(ENV, "BB_REGIME_PATH", joinpath(homedir(), ".config", "blaquebaux", "bonds_regime.txt")),
+              market_regime_path = get(ENV, "BB_MARKET_REGIME_PATH", joinpath(homedir(), ".config", "blaquebaux", "market_regime.txt")))
 
     if get(ENV, "ALPACA_KEY_ID", "") == "" || get(ENV, "ALPACA_SECRET_KEY", "") == ""
         error("Set ALPACA_KEY_ID and ALPACA_SECRET_KEY.")
@@ -117,9 +148,11 @@ function main(; capital = nothing, pool = "us", limits::SafetyLimits = SafetyLim
         panel = panel_at(AlpacaPanelProvider(UNIVERSE; lookback = 320))
         w, sel, mom = boom_weights(panel.returns)
         rscale, rnote = regime_gross_scale(regime_path); w = w .* rscale
+        mscale, mnote = market_gross_scale(market_regime_path); w = w .* mscale
         cap = capital === nothing ? 100_000.0 : capital
         println("DRYRUN boom (asof ", panel.asof, "): bonds regime -> ", rnote)
-        println("  gross ", @sprintf("%.0f%%", 100sum(w)), " (regime x", @sprintf("%.2f", rscale), "):")
+        println("  market regime -> ", mnote)
+        println("  gross ", @sprintf("%.0f%%", 100sum(w)), " (bonds x", @sprintf("%.2f", rscale), " × market x", @sprintf("%.2f", mscale), "):")
         for j in sort(collect(sel), by = x -> -w[x])
             sh = round(Int, w[j] * cap / panel.prices[j])
             println("  ", rpad(panel.symbols[j], 6), @sprintf("wt %5.1f%%  mom %+6.1f%%  %5d sh @ \$%.2f",
@@ -150,12 +183,13 @@ function main(; capital = nothing, pool = "us", limits::SafetyLimits = SafetyLim
         fresh   = (Dates.today() - panel.asof) <= Day(5)
 
         w, sel, _ = boom_weights(panel.returns)
-        rscale, rnote = regime_gross_scale(regime_path); w = w .* rscale     # bonds-regime gross overlay
+        rscale, rnote = regime_gross_scale(regime_path); w = w .* rscale            # bonds-regime gross overlay
+        mscale, mnote = market_gross_scale(market_regime_path); w = w .* mscale     # market-regime overlay (opt-in)
         # Targets over the WHOLE universe (0 for non-selected) so names that rotate OUT get sold.
         targets = Dict(panel.symbols[j] => round(w[j] * cap / panel.prices[j]) for j in eachindex(w))
         prices  = Dict(panel.symbols[j] => panel.prices[j] for j in eachindex(w))
-        reg     = "momtilt-$(length(sel))names-regx$(round(rscale, digits=2))"
-        @info "boom book" names=length(sel) gross=sum(w) regime=rnote held=[panel.symbols[j] for j in sel]
+        reg     = "momtilt-$(length(sel))names-bondsx$(round(rscale, digits=2))-mktx$(round(mscale, digits=2))"
+        @info "boom book" names=length(sel) gross=sum(w) bonds_regime=rnote market_regime=mnote held=[panel.symbols[j] for j in sel]
 
         ok, reasons = preflight(; account_status = acct.status, trading_blocked = acct.trading_blocked,
             account_blocked = acct.account_blocked, equity = acct.equity, hwm = hwm,
