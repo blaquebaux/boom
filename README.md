@@ -119,13 +119,42 @@ drawdown/left-tail *insurance* option**, wired **opt-in** (`BB_MARKET_OVERLAY=1`
 julia --project=engine live/boom_market_regime_validation.jl   # the conditional-keeper test (full SIP)
 ```
 
+#### Live A/B on the overlay — testing the insurance forward on paper
+
+The validation is historical; this A/B runs the tradeoff forward. **Two paper legs run the identical boom
+book and diverge only by the overlay flag** — one variable, isolated:
+
+| leg | env file | flag | ledger / state |
+|-----|----------|------|----------------|
+| **A — control** | `~/.config/blaquebaux/alpaca_boom.env` | `BB_MARKET_OVERLAY=0` | `alpaca_ledger_boom.sqlite` |
+| **B — treatment** | `~/.config/blaquebaux/alpaca_boom_market.env` | `BB_MARKET_OVERLAY=1` | `alpaca_ledger_boom_market.sqlite` |
+
+Both are driven by the one leg-parameterized wrapper and read benchmark's **shared** `market_regime.txt`,
+so **B−A is purely the overlay's live P&L** (the bonds overlay is forced off on both legs to isolate the
+variable). B only diverges from A when the regime is **risk-off** — so [benchmark](https://github.com/blaquebaux/benchmark)'s
+emitter must be running for the A/B to mean anything. The thesis to watch is **drawdown**: B should show a
+shallower drawdown-from-high-water-mark in the next risk-off stretch, at the cost of ~20% of return.
+
+```bash
+bash live/run_boom_daily.sh          # leg A (control)   — installed via com.blaquebaux.boom.plist
+bash live/run_boom_daily.sh market   # leg B (treatment) — installed via com.blaquebaux.boom-market.plist
+python3 live/boom_ab_report.py       # read-only A/B check-in: equity B−A + the drawdown gap
+```
+
+**Activate:** create two Alpaca paper accounts, save their keys to the two env files above (chmod 600), then
+`cp live/com.blaquebaux.boom.plist live/com.blaquebaux.boom-market.plist ~/Library/LaunchAgents/ && launchctl load`
+both. Dry-run/skip until the env files exist; PAPER only (real money needs the `BB_LIVE_CONFIRM` sentinel).
+The pair also shows up side-by-side in the family monitor (`scripts/family_summary.py`).
+
 ## Status
 **Research complete; keeper prototyped and graduated to a governed live driver**
 (`live/boom_live.jl`), plus the #4 PEAD overlay confirmed. **Two regime overlays wired, both OFF by
 default**: the bonds-regime sizing overlay (doesn't earn its place — 0% DD cut) and the market-regime
 overlay (the conditional-keeper test — cuts DD 41% and flips skew positive, but gives back ~20% return, so
 it fails the default-ON bar and ships as opt-in insurance). BOOM already vol-targets, so it self-de-risks.
-Paper-A/B ready once account keys are added; nothing validated to the spine's bar, no real capital.
+**The market-regime opt-in is now built out as a live paper A/B** (control vs treatment, isolated to the
+overlay flag, with a B−A report + family-monitor integration) — ready to run the insurance tradeoff forward
+once two paper accounts are attached. Nothing validated to the spine's bar, no real capital.
 
 ## About Blaque Baux
 
@@ -148,7 +177,10 @@ base/blueprint and holds the [full family roster](https://github.com/blaquebaux/
 ```
 engine/     the Blaque Baux platform (git submodule → blaquebaux/base)
 research/   Path-A strategy sketches + the #3 governed prototype + scorecard
-live/       boom_live.jl (governed driver, bonds + market regime overlays, both opt-in) + boom_regime_validation.jl + boom_market_regime_validation.jl + wrapper + plist
+live/       boom_live.jl (governed driver, bonds + market regime overlays, both opt-in)
+            + boom_regime_validation.jl + boom_market_regime_validation.jl (conditional-keeper test)
+            + boom_ab_report.py (overlay A/B check-in) + run_boom_daily.sh (leg-parameterized: control|market)
+            + com.blaquebaux.boom.plist (control) + com.blaquebaux.boom-market.plist (treatment)
 ```
 
 ## License

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Blaque Baux Boom — market_regime A/B TREATMENT leg (BB_MARKET_OVERLAY=1). Identical book to the
+     control leg (com.blaquebaux.boom); diverges only by the overlay flag, on its own paper account +
+     ledger. Staggered two minutes off the control so both accounts don't hit Alpaca on the same minute.
+     Skips until ~/.config/blaquebaux/alpaca_boom_market.env exists. PAPER only. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.blaquebaux.boom-market</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/malcolmx/blaquebaux-boom/live/run_boom_daily.sh</string>
+        <string>market</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>28</integer></dict>
+        <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>38</integer></dict>
+        <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>53</integer></dict>
+        <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>8</integer></dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/malcolmx/blaquebaux-boom/logs/launchd_boom_market.out</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/malcolmx/blaquebaux-boom/logs/launchd_boom_market.err</string>
+</dict>
+</plist>
