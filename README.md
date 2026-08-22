@@ -106,7 +106,7 @@ crashes and clear the family bar with them left IN?* — evaluated with the fami
 | OVERLAY (market_regime gate) | **+1.26** | 13.7% | 10.7% | **−11%** | **+0.23** | non-normal |
 
 A genuinely close call, and instructive. The gate **cuts maxDD 41%** (−19%→−11%), nudges Sharpe **up**
-(+1.22→+1.26), lifts **M²** (+5.5%→+6.3% excess over SPY), and — most tellingly — **flips return skew from
+(+1.22→+1.26), lifts **M²** (+6.8%→+7.6% excess over SPY), and — most tellingly — **flips return skew from
 −0.31 to +0.23**, removing the classic momentum-crash left tail (JB rejects normality for both, so that
 tail is real and matters). But it de-risks ~48% of the time and **gives back ~20% of return**, so it
 **FAILS the retain-≥80%-return leg** of the default-ON bar (80% kept, just under). Why: **BOOM already

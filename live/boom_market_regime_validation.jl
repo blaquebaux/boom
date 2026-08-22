@@ -36,9 +36,9 @@ function _jensen(r, rb; rf = 0.0)
     rf_d = rf/252; b = cov(r, rb)/var(rb)
     (alpha_ann = ((mean(r) - rf_d) - b*(mean(rb) - rf_d))*252, beta = b)
 end
-function _m2(r, rb; rf = 0.0)
-    rf_d = rf/252; sh = (mean(r) - rf_d)/std(r)*sqrt(252)
-    m2 = rf + sh*std(rb)*sqrt(252); (m2_ann = m2, m2_excess = m2 - ((1+mean(rb))^252 - 1))
+function _m2(r, rb; rf = 0.0)  # M²-alpha in Sharpe-difference form (benchmark vs itself = 0)
+    rf_d = rf/252; shp = (mean(r)-rf_d)/std(r)*sqrt(252); shb = (mean(rb)-rf_d)/std(rb)*sqrt(252)
+    sig_b = std(rb)*sqrt(252); (m2_ann = rf + shp*sig_b, m2_excess = (shp-shb)*sig_b)
 end
 
 function fetch_panel(U, lb = 2600)
